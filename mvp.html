@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Tracker</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom font for a clean look */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5; /* Light gray background */
+        }
+        /* Inter font import (optional, as Tailwind uses system fonts by default, but good for consistency) */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Attendance Tracker</h1>
+
+        <!-- Attendance Calculation Section -->
+        <div class="mb-8 p-6 bg-blue-50 rounded-lg border border-blue-200">
+            <h2 class="text-2xl font-semibold text-blue-700 mb-4">Calculate Subject Attendance (85% Target)</h2>
+            <div class="mb-4">
+                <label for="totalConducted" class="block text-gray-700 text-sm font-medium mb-2">Total Classes Conducted So Far (for this subject):</label>
+                <input type="number" id="totalConducted" class="shadow-sm appearance-none border rounded-md w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent" placeholder="e.g., 27">
+            </div>
+            <div class="mb-4">
+                <label for="classesAttended" class="block text-gray-700 text-sm font-medium mb-2">Classes Attended So Far (for this subject):</label>
+                <input type="number" id="classesAttended" class="shadow-sm appearance-none border rounded-md w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent" placeholder="e.g., 22">
+            </div>
+            <div class="mb-6">
+                <label for="subjectCredits" class="block text-gray-700 text-sm font-medium mb-2">Credits of the Subject:</label>
+                <input type="number" id="subjectCredits" class="shadow-sm appearance-none border rounded-md w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent" placeholder="e.g., 4">
+                <p class="text-xs text-gray-500 mt-1">
+                    (You are allowed to miss Credits * 2 classes in total for this subject to maintain 85% attendance.)
+                </p>
+            </div>
+            <button id="calculateAttendanceBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75 transition duration-300 ease-in-out transform hover:scale-105">
+                Calculate
+            </button>
+            <div id="attendanceResult" class="mt-4 p-3 bg-blue-100 text-blue-800 rounded-md text-center font-medium hidden">
+                <!-- Result will be displayed here -->
+            </div>
+            <div id="attendanceError" class="mt-4 p-3 bg-red-100 text-red-800 rounded-md text-center font-medium hidden">
+                <!-- Error messages will be displayed here -->
+            </div>
+        </div>
+
+        <!-- Missed Class Logger Section -->
+        <div class="p-6 bg-green-50 rounded-lg border border-green-200">
+            <h2 class="text-2xl font-semibold text-green-700 mb-4">Log Missed Class & Add to Calendar</h2>
+            <div class="mb-4">
+                <label for="missedClassName" class="block text-gray-700 text-sm font-medium mb-2">Class Name/Subject:</label>
+                <input type="text" id="missedClassName" class="shadow-sm appearance-none border rounded-md w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent" placeholder="e.g., Math Lecture">
+            </div>
+            <div class="mb-4">
+                <label for="missedDate" class="block text-gray-700 text-sm font-medium mb-2">Date Missed:</label>
+                <input type="date" id="missedDate" class="shadow-sm appearance-none border rounded-md w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent">
+            </div>
+            <div class="mb-6">
+                <label for="missedTime" class="block text-gray-700 text-sm font-medium mb-2">Time Missed (approx.):</label>
+                <input type="time" id="missedTime" class="shadow-sm appearance-none border rounded-md w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent">
+            </div>
+            <button id="addMissedClassBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75 transition duration-300 ease-in-out transform hover:scale-105">
+                Add to Google Calendar
+            </button>
+            <div id="calendarLinkResult" class="mt-4 p-3 bg-green-100 text-green-800 rounded-md text-center font-medium hidden">
+                <!-- Calendar link will be displayed here -->
+            </div>
+            <div id="calendarError" class="mt-4 p-3 bg-red-100 text-red-800 rounded-md text-center font-medium hidden">
+                <!-- Error messages will be displayed here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get DOM elements
+        const totalConductedInput = document.getElementById('totalConducted');
+        const classesAttendedInput = document.getElementById('classesAttended');
+        const subjectCreditsInput = document.getElementById('subjectCredits');
+        const calculateAttendanceBtn = document.getElementById('calculateAttendanceBtn');
+        const attendanceResultDiv = document.getElementById('attendanceResult');
+        const attendanceErrorDiv = document.getElementById('attendanceError');
+
+        const missedClassNameInput = document.getElementById('missedClassName');
+        const missedDateInput = document.getElementById('missedDate');
+        const missedTimeInput = document.getElementById('missedTime');
+        const addMissedClassBtn = document.getElementById('addMissedClassBtn');
+        const calendarLinkResultDiv = document.getElementById('calendarLinkResult');
+        const calendarErrorDiv = document.getElementById('calendarError');
+
+        // Function to display error messages
+        function showError(element, message) {
+            element.textContent = message;
+            element.classList.remove('hidden');
+        }
+
+        // Function to hide error messages
+        function hideError(element) {
+            element.classList.add('hidden');
+        }
+
+        // Function to display results
+        function showResult(element, message) {
+            element.textContent = message;
+            element.classList.remove('hidden');
+        }
+
+        // --- Attendance Calculation Logic ---
+        calculateAttendanceBtn.addEventListener('click', () => {
+            hideError(attendanceErrorDiv);
+            attendanceResultDiv.classList.add('hidden'); // Hide previous result
+
+            const totalConducted = parseInt(totalConductedInput.value);
+            const classesAttended = parseInt(classesAttendedInput.value);
+            const subjectCredits = parseInt(subjectCreditsInput.value);
+
+            // Input validation
+            if (isNaN(totalConducted) || isNaN(classesAttended) || isNaN(subjectCredits)) {
+                showError(attendanceErrorDiv, 'Please enter valid numbers for all fields.');
+                return;
+            }
+            if (totalConducted < 0 || classesAttended < 0 || subjectCredits <= 0) {
+                showError(attendanceErrorDiv, 'Class counts cannot be negative, and subject credits must be positive.');
+                return;
+            }
+            if (classesAttended > totalConducted) {
+                showError(attendanceErrorDiv, 'Classes attended cannot be more than classes conducted.');
+                return;
+            }
+
+            const attendanceTarget = 0.85; // 85%
+            const allowedMissedPercentage = 0.15; // 15%
+
+            // Calculate the total number of classes allowed to be missed for this subject based on credits
+            const totalAllowedMissedByRule = subjectCredits * 2;
+
+            // Derive the total classes for the entire subject based on the 15% allowance
+            // If totalAllowedMissedByRule is 15% of totalClassesSubject, then totalClassesSubject = totalAllowedMissedByRule / 0.15
+            const totalClassesSubject = Math.ceil(totalAllowedMissedByRule / allowedMissedPercentage);
+
+            // Crucial validation: Ensure conducted classes don't exceed the derived total for the subject
+            if (totalConducted > totalClassesSubject) {
+                showError(attendanceErrorDiv, `Error: You have conducted ${totalConducted} classes, but a ${subjectCredits}-credit subject (with ${totalAllowedMissedByRule} allowed misses) implies a total of ${totalClassesSubject} classes. Please adjust your inputs.`);
+                return;
+            }
+
+            // Calculate classes already missed
+            const classesAlreadyMissed = totalConducted - classesAttended;
+
+            // Calculate how many more classes can be bunked based on the allowed misses for the subject
+            const classesCanStillBunk = totalAllowedMissedByRule - classesAlreadyMissed;
+
+            // Calculate classes remaining in the subject
+            const classesRemainingInSubject = totalClassesSubject - totalConducted;
+
+
+            if (classesCanStillBunk >= 0) {
+                // If they are within the allowed missed limit (or exactly at it)
+                showResult(attendanceResultDiv, `You can bunk ${Math.max(0, classesCanStillBunk)} more class(es) in this subject.`);
+            } else {
+                // They have already bunked more than the total allowed misses (Credits * 2)
+                // Now, calculate how many more classes they MUST attend from the remaining to reach 85%
+                const requiredAttendedTotal = Math.ceil(attendanceTarget * totalClassesSubject);
+                const classesToAttendFurther = requiredAttendedTotal - classesAttended;
+
+                if (classesToAttendFurther <= classesRemainingInSubject) {
+                    // It is still possible to reach 85% by attending some of the remaining classes
+                    const classesToBunkFromRemaining = classesRemainingInSubject - classesToAttendFurther;
+                    showResult(attendanceResultDiv, `You have already missed more than the allowed limit. You should attend ${classesToAttendFurther} more class(es) in this subject from the remaining ${classesRemainingInSubject} classes. You can bunk ${classesToBunkFromRemaining} class(es) from the remaining if you attend the required ones.`);
+                } else {
+                    // It is NOT possible to reach 85% even by attending all remaining classes
+                    const maxPossibleAttended = classesAttended + classesRemainingInSubject;
+                    const maxPossibleAttendancePercentage = (maxPossibleAttended / totalClassesSubject) * 100;
+                    showResult(attendanceResultDiv, `It's not possible to reach 85% attendance in this subject. Your maximum possible attendance will be ${maxPossibleAttendancePercentage.toFixed(2)}% by attending all ${classesRemainingInSubject} remaining class(es).`);
+                }
+            }
+        });
+
+        // --- Missed Class Logging & Calendar Integration Logic ---
+        addMissedClassBtn.addEventListener('click', () => {
+            hideError(calendarErrorDiv);
+            calendarLinkResultDiv.classList.add('hidden'); // Hide previous link
+
+            const className = missedClassNameInput.value.trim();
+            const missedDate = missedDateInput.value; // YYYY-MM-DD
+            const missedTime = missedTimeInput.value; // HH:MM
+
+            // Input validation
+            if (!className || !missedDate || !missedTime) {
+                showError(calendarErrorDiv, 'Please fill in all fields (Class Name, Date, and Time).');
+                return;
+            }
+
+            // Parse date and time
+            const dateParts = missedDate.split('-'); // [YYYY, MM, DD]
+            const timeParts = missedTime.split(':'); // [HH, MM]
+
+            // Create a Date object for the missed class
+            // Note: Month is 0-indexed in JavaScript Date object
+            const missedDateTime = new Date(
+                parseInt(dateParts[0]),
+                parseInt(dateParts[1]) - 1,
+                parseInt(dateParts[2]),
+                parseInt(timeParts[0]),
+                parseInt(timeParts[1])
+            );
+
+            // For a missed class, we'll create a 1-hour event
+            const endDateTime = new Date(missedDateTime.getTime() + (60 * 60 * 1000)); // Add 1 hour
+
+            // Format dates for Google Calendar URL (YYYYMMDDTHHMMSSZ)
+            // Function to format a single date component to ensure two digits
+            const formatTwoDigits = (num) => num.toString().padStart(2, '0');
+
+            // Format the start and end times for the Google Calendar URL
+            const formattedStart = `${missedDateTime.getFullYear()}${formatTwoDigits(missedDateTime.getMonth() + 1)}${formatTwoDigits(missedDateTime.getDate())}T${formatTwoDigits(missedDateTime.getHours())}${formatTwoDigits(missedDateTime.getMinutes())}00`;
+            const formattedEnd = `${endDateTime.getFullYear()}${formatTwoDigits(endDateTime.getMonth() + 1)}${formatTwoDigits(endDateTime.getDate())}T${formatTwoDigits(endDateTime.getHours())}${formatTwoDigits(endDateTime.getMinutes())}00`;
+
+            const eventTitle = encodeURIComponent(`Missed Class: ${className}`);
+            const eventDetails = encodeURIComponent(`You missed your ${className} class. Remember to catch up on notes.`);
+            const dates = `${formattedStart}/${formattedEnd}`;
+
+            // Construct Google Calendar URL
+            const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${eventTitle}&dates=${dates}&details=${eventDetails}&sf=true&output=xml`;
+
+            // Create and display the link
+            const link = document.createElement('a');
+            link.href = googleCalendarUrl;
+            link.target = '_blank'; // Open in new tab
+            link.className = 'text-blue-600 hover:text-blue-800 underline font-semibold';
+            link.textContent = 'Click here to add to Google Calendar';
+
+            calendarLinkResultDiv.innerHTML = ''; // Clear previous content
+            calendarLinkResultDiv.appendChild(link);
+            calendarLinkResultDiv.classList.remove('hidden');
+        });
+    </script>
+</body>
+</html>

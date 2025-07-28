@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BMSCE Attendance Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">BMSCE Attendance Calculator</h1>
+
+        <div class="mb-8 p-6 bg-blue-50 rounded-lg border border-blue-200">
+            <h2 class="text-2xl font-semibold text-blue-700 mb-4">Calculate Bunkable Classes</h2>
+
+            <div class="mb-4">
+                <label for="theoryCredits" class="block text-gray-700 text-sm font-medium mb-2">Theory Credits for the Subject (C_T):</label>
+                <input type="number" id="theoryCredits" class="shadow-sm appearance-none border rounded-md w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent" placeholder="e.g., 4">
+            </div>
+
+            <div class="mb-4">
+                <label for="classesAttendedCurrent" class="block text-gray-700 text-sm font-medium mb-2">Classes Attended So Far (A_current):</label>
+                <input type="number" id="classesAttendedCurrent" class="shadow-sm appearance-none border rounded-md w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent" placeholder="e.g., 22">
+            </div>
+
+            <div class="mb-6">
+                <label for="classesConductedCurrent" class="block text-gray-700 text-sm font-medium mb-2">Classes Conducted So Far (C_current):</label>
+                <input type="number" id="classesConductedCurrent" class="shadow-sm appearance-none border rounded-md w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent" placeholder="e.g., 27">
+            </div>
+
+            <button id="calculateBunkableBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75 transition duration-300 ease-in-out transform hover:scale-105">
+                Calculate Bunkable Classes
+            </button>
+
+            <div id="attendanceResult" class="mt-4 p-3 bg-blue-100 text-blue-800 rounded-md text-center font-medium hidden">
+                </div>
+            <div id="attendanceError" class="mt-4 p-3 bg-red-100 text-red-800 rounded-md text-center font-medium hidden">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get DOM elements
+            const theoryCreditsInput = document.getElementById('theoryCredits');
+            const classesAttendedCurrentInput = document.getElementById('classesAttendedCurrent');
+            const classesConductedCurrentInput = document.getElementById('classesConductedCurrent');
+            const calculateBunkableBtn = document.getElementById('calculateBunkableBtn');
+            const attendanceResultDiv = document.getElementById('attendanceResult');
+            const attendanceErrorDiv = document.getElementById('attendanceError');
+
+            // Constants based on your provided rules
+            const SEMESTER_DURATION_WEEKS = 19;
+            const WEEKLY_CONTACT_HOURS_PER_CREDIT = 1; // 1 hour of instruction per week per semester for theory
+            const ATTENDANCE_REQUIREMENT = 0.85; // 85%
+
+            // Function to display error messages
+            function showError(element, message) {
+                element.innerHTML = message; // Use innerHTML to allow for bolding in error messages
+                element.classList.remove('hidden');
+            }
+
+            // Function to hide error messages
+            function hideError(element) {
+                element.classList.add('hidden');
+            }
+
+            // Function to display results
+            function showResult(element, message) {
+                element.innerHTML = message; // Use innerHTML to allow for bolding
+                element.classList.remove('hidden');
+            }
+
+            // --- Attendance Calculation Logic ---
+            calculateBunkableBtn.addEventListener('click', () => {
+                hideError(attendanceErrorDiv);
+                attendanceResultDiv.classList.add('hidden'); // Hide previous result
+
+                const C_T = parseInt(theoryCreditsInput.value);
+                const A_current = parseInt(classesAttendedCurrentInput.value);
+                const C_current = parseInt(classesConductedCurrentInput.value);
+
+                // Input validation
+                if (isNaN(C_T) || isNaN(A_current) || isNaN(C_current)) {
+                    showError(attendanceErrorDiv, 'Please enter valid numbers for all fields.');
+                    return;
+                }
+                if (C_T <= 0 || A_current < 0 || C_current <= 0) {
+                    showError(attendanceErrorDiv, 'Credits must be positive. Attended/Conducted classes cannot be negative, and conducted classes must be positive.');
+                    return;
+                }
+                if (A_current > C_current) {
+                    showError(attendanceErrorDiv, 'Classes attended cannot be more than classes conducted.');
+                    return;
+                }
+
+                // Step 1: Determine Total Theoretical Classes (Contact Hours) for the Entire Semester
+                const Total_Semester_Classes = C_T * WEEKLY_CONTACT_HOURS_PER_CREDIT * SEMESTER_DURATION_WEEKS;
+
+                // Step 2: Calculate Minimum Required Classes for the Entire Semester (85%)
+                const Minimum_Required_Classes_Semester = Total_Semester_Classes * ATTENDANCE_REQUIREMENT;
+
+                // Step 3: Calculate Classes Still Needed to Attend
+                const Classes_Needed_From_Now_On = Minimum_Required_Classes_Semester - A_current;
+
+                // Step 4: Calculate Classes Remaining to be Conducted
+                const Classes_Remaining_To_Be_Conducted = Total_Semester_Classes - C_current;
+
+                // Current attendance percentage for user info
+                const currentAttendancePercentage = C_current > 0 ? (A_current / C_current) * 100 : 0;
+
+                let resultMessage = `Your current attendance is: <strong>${currentAttendancePercentage.toFixed(2)}%</strong>.<br>`;
+
+                // Additional validation: If current conducted classes exceed total expected semester classes
+                if (C_current > Total_Semester_Classes) {
+                    showError(attendanceErrorDiv, `Error: Classes conducted (${C_current}) exceed the total expected classes for a ${C_T}-credit subject in a full semester (${Total_Semester_Classes}). Please review your inputs.`);
+                    return;
+                }
+
+                if (Classes_Needed_From_Now_On <= 0) {
+                    // Scenario: Already met or exceeded minimum required attendance for the semester
+                    const Maximum_Bunkable_Classes_From_Now_On = Classes_Remaining_To_Be_Conducted - Math.max(0, Classes_Needed_From_Now_On);
+                    const Rounded_Bunkable_Classes = Math.floor(Maximum_Bunkable_Classes_From_Now_On);
+
+                    if (Rounded_Bunkable_Classes >= 0) {
+                        resultMessage += `You have already met or exceeded the 85% requirement! You can safely bunk <strong>${Rounded_Bunkable_Classes}</strong> more class(es) from the remaining ${Classes_Remaining_To_Be_Conducted} classes.`;
+                    } else {
+                        // This case implies an edge case where C_current might be very high but A_current is low
+                        // Or Total_Semester_Classes is smaller than Minimum_Required_Classes_Semester (which shouldn't happen with 85% target)
+                        resultMessage += `You've already missed more than the total classes in the subject or there's an unusual input. Please double-check your figures.`;
+                    }
+
+                } else if (Classes_Needed_From_Now_On > Classes_Remaining_To_Be_Conducted) {
+                    // Scenario: It's impossible to reach 85% even if all remaining classes are attended
+                    const maxPossibleAttended = A_current + Classes_Remaining_To_Be_Conducted;
+                    const maxPossibleAttendancePercentage = Total_Semester_Classes > 0 ? (maxPossibleAttended / Total_Semester_Classes) * 100 : 0;
+                    resultMessage += `It's not possible to reach 85% attendance. Your maximum possible attendance will be <strong>${maxPossibleAttendancePercentage.toFixed(2)}%</strong> by attending all ${Classes_Remaining_To_Be_Conducted} remaining class(es). You will need to consider condonation.`;
+                } else {
+                    // Scenario: Still possible to reach 85%, calculate how many more can be bunked
+                    // Step 5: Calculate Maximum Bunkable Classes from Now On
+                    const Maximum_Bunkable_Classes_From_Now_On = Classes_Remaining_To_Be_Conducted - Classes_Needed_From_Now_On;
+
+                    // Step 6: Rounding and Practical Application
+                    const Rounded_Bunkable_Classes = Math.floor(Maximum_Bunkable_Classes_From_Now_On);
+
+                    resultMessage += `To reach 85%, you need to attend <strong>${Math.ceil(Classes_Needed_From_Now_On)}</strong> more class(es) from the remaining ${Classes_Remaining_To_Be_Conducted}.<br>`;
+                    if (Rounded_Bunkable_Classes >= 0) {
+                        resultMessage += `You can bunk <strong>${Rounded_Bunkable_Classes}</strong> more class(es) from the remaining classes.`;
+                    } else {
+                        resultMessage += `You cannot bunk any more classes and must attend all remaining ${Classes_Remaining_To_Be_Conducted} classes to reach 85%.`;
+                    }
+                }
+
+                showResult(attendanceResultDiv, resultMessage);
+            });
+        });
+    </script>
+</body>
+</html>
