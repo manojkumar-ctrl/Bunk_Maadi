@@ -29,9 +29,9 @@ const Guide = () => {
   ];
 
   return (
-    <section className="py-16 px-4 bg-gray-900 text-white">
-      <div className="max-w-6xl mx-auto text-center">
-        <h2 className="text-3xl md:text-4xl font-bold mb-12">
+    <section className="py-16 px-4 bg-gray-900 text-white bg-slate-200">
+      <div className=" max-w-6xl mx-auto text-center bg-slate-200">
+        <h2 className="text-3xl md:text-4xl font-bold mb-12 text-black">
           What Can You Expect Here?
         </h2>
 
@@ -39,7 +39,7 @@ const Guide = () => {
           {features.map((feature, index) => (
             <div
               key={index}
-              className="bg-gray-800 p-6 rounded-lg shadow-lg flex flex-col items-center transform transition duration-300 hover:scale-105 hover:bg-gray-700"
+              className="bg-blue-900 p-6 rounded-lg shadow-lg flex flex-col items-center transform transition duration-300 hover:scale-105 hover:bg-blue-900"
             >
               <div className="text-5xl mb-4" role="img" aria-label={feature.title}>
                 {feature.icon}

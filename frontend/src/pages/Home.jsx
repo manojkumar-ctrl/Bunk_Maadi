@@ -5,7 +5,7 @@ import Guide from '../components/Guide.jsx'
 
 const Home = () => {
   return (
-    <div>
+    <div className='bg-black'>
       <Hero/>
       <GetStart/>
       <Guide/>
