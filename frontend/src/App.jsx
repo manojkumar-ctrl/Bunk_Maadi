@@ -3,7 +3,6 @@ import { Routes, Route } from 'react-router-dom';
 
 // Page components
 import Home from './pages/Home';
-import Calculator from './pages/Calculator';
 import Logger from './pages/Logger';
 import Workflow from './pages/Workflow';
 import BunkTracker from './pages/BunkTracker';
@@ -21,7 +20,6 @@ function App() {
 
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/calculator" element={<Calculator />} />
         <Route path="/logger" element={<Logger />} />
         <Route path="/workflow" element={<Workflow />} />
         <Route path="/bunk-tracker" element={<BunkTracker />} />

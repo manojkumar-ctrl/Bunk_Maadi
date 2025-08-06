@@ -12,10 +12,10 @@ function NavBar() {
 
   const navLinks = [
     { path: '/', label: 'Home' },
-    { path: '/calculator', label: 'Calculator' },
-    { path: '/logger', label: 'Logger' },
-    { path: '/workflow', label: 'How It Works' },
     { path: '/bunk-tracker', label: 'Bunk Tracker' },
+    { path: '/logger', label: 'Leaderboard' },
+    { path: '/workflow', label: 'How It Works' },
+   
   ];
 
   return (

@@ -26,7 +26,7 @@ const steps = [
 
 const Workflow = () => {
   return (
-    <div className="py-16 px-4 bg-gray-900 text-white font-inter mt-20 ">
+    <div className="py-16 px-4 bg-gray-900 text-white font-inter mt-20 mb-30 ">
       <div className="max-w-6xl mx-auto text-center">
         <h2 className="text-4xl font-extrabold mb-4 text-blue-400">How BunkMaadi Works</h2>
         <p className="text-gray-300 mb-12 text-lg">

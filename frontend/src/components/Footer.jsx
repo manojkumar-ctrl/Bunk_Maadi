@@ -9,7 +9,7 @@ const Footer = () => {
         <div>
           <img src={assets.logo} className="mb-5 w-20" alt="Logo" />
           <p className="text-slate-300">
-            BunkMaadi is a smart attendance planner that helps students track subject-wise attendance,
+            Can-I-Bunk is a smart attendance planner that helps students track subject-wise attendance,
             apply college-specific thresholds, and calculate how many classes they can safely miss—
             so they never fall short.
           </p>
@@ -20,7 +20,7 @@ const Footer = () => {
           <p className="text-xl font-medium mb-5">COMPANY</p>
           <ul className="flex flex-col gap-1 text-slate-300">
             <li>Home</li>
-            <li>About BunkMaadi</li>
+            <li>About Can-I-Bunk</li>
             <li>How It Works</li>
             <li>Privacy Policy</li>
           </ul>

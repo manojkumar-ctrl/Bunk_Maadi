@@ -1,10 +1,12 @@
-// backend/routes/bunkRoutes.js
 const express = require('express');
-const { recordBunk, recordAttendance, getTopBunkers } = require('../controllers/bunkController');
 const router = express.Router();
+const { recordBunk } = require('../controllers/bunkController');
+const { getBunkHistory } = require('../controllers/history.js'); // Import the new controller
 
+// Bunk a class and update records
 router.post('/bunk', recordBunk);
-router.post('/attend', recordAttendance);
-router.get('/leaderboard/top-bunkers', getTopBunkers);
+
+// NEW Route to get bunk history
+router.get('/bunk-history/:userId', getBunkHistory);
 
 module.exports = router;

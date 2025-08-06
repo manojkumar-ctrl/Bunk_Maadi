@@ -14,31 +14,31 @@ require('dotenv').config(); // Ensure dotenv is loaded for API keys
 // Function to fetch weather data (mock or real API)
 const getBengaluruWeather = async () => {
   // Option 1: Mock weather (for development without a real API key/setup)
-  const mockWeathers = [
-    "Clear sky, 28°C, low humidity",
-    "Light rain, 25°C, moderate humidity",
-    "Overcast clouds, 26°C, high humidity",
-    "Sunny, 30°C, dry"
-  ];
-  return mockWeathers[Math.floor(Math.random() * mockWeathers.length)];
+  // const mockWeathers = [
+  //   "Clear sky, 28°C, low humidity",
+  //   "Light rain, 25°C, moderate humidity",
+  //   "Overcast clouds, 26°C, high humidity",
+  //   "Sunny, 30°C, dry"
+  // ];
+  // return mockWeathers[Math.floor(Math.random() * mockWeathers.length)];
 
   // Option 2: Integrate with a real weather API (e.g., OpenWeatherMap)
-  // const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
-  // const city = 'Bengaluru';
-  // const url = `http://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${WEATHER_API_KEY}&units=metric`;
-  // try {
-  //   const response = await fetch(url);
-  //   const data = await response.json();
-  //   if (response.ok) {
-  //     return `${data.weather[0].description}, ${data.main.temp}°C, humidity ${data.main.humidity}%`;
-  //   } else {
-  //     console.error('Weather API error:', data.message);
-  //     return 'Weather data unavailable.';
-  //   }
-  // } catch (error) {
-  //   console.error('Failed to fetch weather:', error);
-  //   return 'Weather data unavailable.';
-  // }
+  const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
+  const city = 'Bengaluru';
+  const url = `http://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${WEATHER_API_KEY}&units=metric`;
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    if (response.ok) {
+      return `${data.weather[0].description}, ${data.main.temp}°C, humidity ${data.main.humidity}%`;
+    } else {
+      console.error('Weather API error:', data.message);
+      return 'Weather data unavailable.';
+    }
+  } catch (error) {
+    console.error('Failed to fetch weather:', error);
+    return 'Weather data unavailable.';
+  }
 };
 
 // @desc    Get AI bunk prediction

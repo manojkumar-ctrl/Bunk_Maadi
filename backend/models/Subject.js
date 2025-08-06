@@ -1,4 +1,4 @@
-// backend/models/Subject.js
+// 📄 File: backend/models/Subject.js
 const mongoose = require('mongoose');
 
 const bunkHistorySchema = mongoose.Schema({
@@ -9,7 +9,7 @@ const bunkHistorySchema = mongoose.Schema({
 const subjectSchema = mongoose.Schema(
   {
     user: {
-      type: String, // Changed to String for simplicity as we're not doing full auth yet
+      type: String,
       required: true,
     },
     name: {
@@ -35,12 +35,17 @@ const subjectSchema = mongoose.Schema(
     minAttendance: {
       type: Number,
       required: true,
-      default: 75, // Default minimum attendance percentage
+      default: 75,
     },
-    bunkHistory: [bunkHistorySchema], // Array of bunk/attendance records
+    credits: {
+      type: Number,
+      required: true,
+      default: 1,
+    },
+    bunkHistory: [bunkHistorySchema],
   },
   {
-    timestamps: true, // Adds createdAt and updatedAt fields
+    timestamps: true,
   }
 );
 

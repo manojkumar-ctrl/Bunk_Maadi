@@ -1,13 +1,13 @@
-// backend/controllers/subjectController.js
+// 📄 File: backend/controllers/subjectController.js
+
 const Subject = require('../models/Subject');
 
 // @desc    Get all subjects for a user
 // @route   GET /api/subjects
-// @access  Private (requires user ID)
+// @access  Private
 const getSubjects = async (req, res) => {
   try {
-    // In a real auth system, userId would come from req.user.id
-    const userId = req.query.userId || 'mockUserId'; // For now, use query param or mock
+    const userId = req.query.userId || 'mockUserId';
     const subjects = await Subject.find({ user: userId });
     res.json(subjects);
   } catch (error) {
@@ -19,12 +19,19 @@ const getSubjects = async (req, res) => {
 // @route   POST /api/subjects
 // @access  Private
 const addSubject = async (req, res) => {
-  const { name, totalClasses, attendedClasses, minAttendance } = req.body;
-  // In a real auth system, userId would come from req.user.id
-  const userId = req.body.userId || 'mockUserId'; // For now, use body param or mock
+  const { name, totalClasses, attendedClasses, minAttendance, credits } = req.body;
+  const userId = req.body.userId || 'mockUserId';
 
-  if (!name || !totalClasses || !attendedClasses || minAttendance === undefined) { // Check for undefined minAttendance
-    return res.status(400).json({ message: 'Please enter all required fields: name, totalClasses, attendedClasses, minAttendance' });
+  if (
+    !name ||
+    totalClasses === undefined ||
+    attendedClasses === undefined ||
+    minAttendance === undefined ||
+    credits === undefined
+  ) {
+    return res.status(400).json({
+      message: 'Please enter all required fields: name, totalClasses, attendedClasses, minAttendance, credits'
+    });
   }
 
   try {
@@ -34,6 +41,7 @@ const addSubject = async (req, res) => {
       totalClasses,
       attendedClasses,
       minAttendance,
+      credits,
       totalBunks: 0,
       bunkHistory: []
     });
@@ -49,18 +57,18 @@ const addSubject = async (req, res) => {
 // @route   PUT /api/subjects/:id
 // @access  Private
 const updateSubject = async (req, res) => {
-  const { name, totalClasses, attendedClasses, minAttendance, totalBunks, bunkHistory } = req.body;
+  const { name, totalClasses, attendedClasses, minAttendance, totalBunks, bunkHistory, credits } = req.body;
   try {
     const subject = await Subject.findById(req.params.id);
 
     if (subject) {
-      // In a real auth system, check if subject.user === req.user.id
       subject.name = name !== undefined ? name : subject.name;
       subject.totalClasses = totalClasses !== undefined ? totalClasses : subject.totalClasses;
       subject.attendedClasses = attendedClasses !== undefined ? attendedClasses : subject.attendedClasses;
       subject.minAttendance = minAttendance !== undefined ? minAttendance : subject.minAttendance;
       subject.totalBunks = totalBunks !== undefined ? totalBunks : subject.totalBunks;
       subject.bunkHistory = bunkHistory !== undefined ? bunkHistory : subject.bunkHistory;
+      subject.credits = credits !== undefined ? credits : subject.credits;
 
       const updatedSubject = await subject.save();
       res.json(updatedSubject);
@@ -80,8 +88,7 @@ const deleteSubject = async (req, res) => {
     const subject = await Subject.findById(req.params.id);
 
     if (subject) {
-      // In a real auth system, check if subject.user === req.user.id
-      await subject.deleteOne(); // Use deleteOne() for Mongoose 6+
+      await subject.deleteOne();
       res.json({ message: 'Subject removed' });
     } else {
       res.status(404).json({ message: 'Subject not found' });
