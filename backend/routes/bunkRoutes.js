@@ -1,12 +1,14 @@
+// backend/routes/bunkRoutes.js
 const express = require('express');
 const router = express.Router();
+
 const { recordBunk } = require('../controllers/bunkController');
-const { getBunkHistory } = require('../controllers/history.js'); // Import the new controller
+const { getBunkHistory } = require('../controllers/history');
+// const requireAuth = require('../middlewares/authmiddleware'); // remove this line
 
-// Bunk a class and update records
+// router.use(requireAuth); // remove this since auth is global
+
 router.post('/bunk', recordBunk);
-
-// NEW Route to get bunk history
-router.get('/bunk-history/:userId', getBunkHistory);
+router.get('/bunk-history', getBunkHistory);
 
 module.exports = router;

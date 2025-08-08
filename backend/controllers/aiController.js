@@ -102,8 +102,8 @@ const getBunkPrediction = async (req, res) => {
       body: JSON.stringify(payload),
     });
 
-    console.log("LLM Response Status:", llmResponse.status);
-    console.log("LLM Response Status Text:", llmResponse.statusText);
+    // console.log("LLM Response Status:", llmResponse.status);
+    // console.log("LLM Response Status Text:", llmResponse.statusText);
 
     const llmResult = await llmResponse.json();
     console.log("Full LLM Result:", JSON.stringify(llmResult, null, 2));
@@ -113,10 +113,10 @@ const getBunkPrediction = async (req, res) => {
         llmResult.candidates[0].content && llmResult.candidates[0].content.parts &&
         llmResult.candidates[0].content.parts.length > 0) {
       const predictionText = llmResult.candidates[0].content.parts[0].text;
-      console.log("AI Prediction successful.");
+      // console.log("AI Prediction successful.");
       res.json({ prediction: predictionText, weather: bengaluruWeather });
     } else {
-      console.error("Unexpected LLM response structure or missing content.");
+      // console.error("Unexpected LLM response structure or missing content.");
       res.status(500).json({ message: "Failed to get prediction from AI. Unexpected response." });
     }
   } catch (error) {

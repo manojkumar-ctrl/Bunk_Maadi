@@ -1,33 +1,36 @@
-const Subject = require('../models/Subject');
+// backend/controllers/history.js
+const Bunk = require('../models/Bunk');
 
-// @desc  Get bunk history for a user
-// @route GET /api/bunk-history/:userId
-// @access Private
 const getBunkHistory = async (req, res) => {
-  const { userId } = req.params;
-
   try {
-    const subjects = await Subject.find({ user: userId });
+    console.log('GET /api/bunk-history called');
+    console.log('req.auth present?', !!req.auth);
+    console.log('req.auth.userId:', req.auth?.userId);
+    console.log('Authorization header (first 50 chars):', req.headers.authorization?.slice(0,50) || 'none');
 
-    // Extract and format only the bunk events from the history
-    const bunkHistory = subjects.flatMap(subject =>
-      subject.bunkHistory
-        .filter(event => event.type === 'bunk')
-        .map(bunk => ({
-          subjectName: subject.name,
-          bunkDate: bunk.date,
-        }))
-    );
+    if (!req.auth || !req.auth.userId) {
+      return res.status(401).json({ message: 'Not authenticated (req.auth.userId missing).' });
+    }
 
-    // Sort the history by date, most recent first
-    bunkHistory.sort((a, b) => b.bunkDate - a.bunkDate);
+    const userId = req.auth.userId;
 
-    res.status(200).json(bunkHistory);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    // Query stored using "user" field (match your models). Adjust if you use userId.
+    const history = await Bunk.find({ userId: userId }).sort({ date: -1 }).limit(100).lean();
+
+    // Normalize shape so frontend doesn't need to guess field names
+    const normalized = history.map(h => ({
+      id: h._id,
+      bunkDate: h.date || h.bunkDate || h.createdAt,
+      subjectName: h.subject || h.subjectName || h.title || 'Unknown Subject',
+      status: h.status || 'BUNKED'
+    }));
+
+    console.log(`Returning ${normalized.length} items for user ${userId}`);
+    return res.status(200).json(normalized);
+  } catch (err) {
+    console.error('getBunkHistory error:', err);
+    return res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
 
-module.exports = {
-  getBunkHistory,
-};
+module.exports = { getBunkHistory };

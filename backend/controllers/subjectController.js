@@ -1,100 +1,100 @@
-// 📄 File: backend/controllers/subjectController.js
-
+// backend/controllers/subjectController.js
 const Subject = require('../models/Subject');
 
-// @desc    Get all subjects for a user
-// @route   GET /api/subjects
-// @access  Private
+// GET /api/subjects
 const getSubjects = async (req, res) => {
   try {
-    const userId = req.query.userId || 'mockUserId';
-    const subjects = await Subject.find({ user: userId });
-    res.json(subjects);
+    console.log('GET /api/subjects called');
+    console.log('req.auth exists?', !!req.auth);
+    console.log('req.auth.userId:', req.auth?.userId);
+
+    if (!req.auth || !req.auth.userId) {
+      return res.status(401).json({ message: 'Not authenticated (req.auth.userId missing).' });
+    }
+
+    const userId = req.auth.userId; // <- Clerk provides this
+    const subjects = await Subject.find({ user: userId }).sort({ createdAt: -1 });
+    return res.status(200).json(subjects);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Error in getSubjects:', error);
+    return res.status(500).json({ message: 'Server error in getSubjects', error: error.message });
   }
 };
 
-// @desc    Add a new subject
-// @route   POST /api/subjects
-// @access  Private
+// POST /api/subjects
 const addSubject = async (req, res) => {
-  const { name, totalClasses, attendedClasses, minAttendance, credits } = req.body;
-  const userId = req.body.userId || 'mockUserId';
-
-  if (
-    !name ||
-    totalClasses === undefined ||
-    attendedClasses === undefined ||
-    minAttendance === undefined ||
-    credits === undefined
-  ) {
-    return res.status(400).json({
-      message: 'Please enter all required fields: name, totalClasses, attendedClasses, minAttendance, credits'
-    });
-  }
-
   try {
-    const newSubject = new Subject({
-      user: userId,
+    if (!req.auth || !req.auth.userId) {
+      return res.status(401).json({ message: 'Not authenticated (req.auth.userId missing).' });
+    }
+
+    const userId = req.auth.userId;
+    const { name, totalClasses, attendedClasses, minAttendance, credits } = req.body;
+
+    if (!name) return res.status(400).json({ message: 'Subject name required' });
+
+    const subject = new Subject({
+      user: userId, // IMPORTANT: your schema uses field `user`
       name,
-      totalClasses,
-      attendedClasses,
-      minAttendance,
-      credits,
+      totalClasses: Number(totalClasses) || 0,
+      attendedClasses: Number(attendedClasses) || 0,
+      minAttendance: Number(minAttendance) || 75,
+      credits: Number(credits) || 1,
       totalBunks: 0,
       bunkHistory: []
     });
 
-    const createdSubject = await newSubject.save();
-    res.status(201).json(createdSubject);
+    const created = await subject.save();
+    return res.status(201).json(created);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Error in addSubject:', error);
+    return res.status(500).json({ message: 'Server error in addSubject', error: error.message });
   }
 };
 
-// @desc    Update a subject
-// @route   PUT /api/subjects/:id
-// @access  Private
+// PUT /api/subjects/:id
 const updateSubject = async (req, res) => {
-  const { name, totalClasses, attendedClasses, minAttendance, totalBunks, bunkHistory, credits } = req.body;
   try {
-    const subject = await Subject.findById(req.params.id);
-
-    if (subject) {
-      subject.name = name !== undefined ? name : subject.name;
-      subject.totalClasses = totalClasses !== undefined ? totalClasses : subject.totalClasses;
-      subject.attendedClasses = attendedClasses !== undefined ? attendedClasses : subject.attendedClasses;
-      subject.minAttendance = minAttendance !== undefined ? minAttendance : subject.minAttendance;
-      subject.totalBunks = totalBunks !== undefined ? totalBunks : subject.totalBunks;
-      subject.bunkHistory = bunkHistory !== undefined ? bunkHistory : subject.bunkHistory;
-      subject.credits = credits !== undefined ? credits : subject.credits;
-
-      const updatedSubject = await subject.save();
-      res.json(updatedSubject);
-    } else {
-      res.status(404).json({ message: 'Subject not found' });
+    if (!req.auth || !req.auth.userId) {
+      return res.status(401).json({ message: 'Not authenticated.' });
     }
+    const userId = req.auth.userId;
+    const subject = await Subject.findOne({ _id: req.params.id, user: userId });
+    if (!subject) return res.status(404).json({ message: 'Subject not found' });
+
+    const { name, totalClasses, attendedClasses, minAttendance, totalBunks, bunkHistory, credits } = req.body;
+
+    subject.name = name ?? subject.name;
+    subject.totalClasses = totalClasses ?? subject.totalClasses;
+    subject.attendedClasses = attendedClasses ?? subject.attendedClasses;
+    subject.minAttendance = minAttendance ?? subject.minAttendance;
+    subject.totalBunks = totalBunks ?? subject.totalBunks;
+    subject.bunkHistory = bunkHistory ?? subject.bunkHistory;
+    subject.credits = credits ?? subject.credits;
+
+    const updated = await subject.save();
+    return res.json(updated);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Error in updateSubject:', error);
+    return res.status(500).json({ message: error.message });
   }
 };
 
-// @desc    Delete a subject
-// @route   DELETE /api/subjects/:id
-// @access  Private
+// DELETE /api/subjects/:id
 const deleteSubject = async (req, res) => {
   try {
-    const subject = await Subject.findById(req.params.id);
-
-    if (subject) {
-      await subject.deleteOne();
-      res.json({ message: 'Subject removed' });
-    } else {
-      res.status(404).json({ message: 'Subject not found' });
+    if (!req.auth || !req.auth.userId) {
+      return res.status(401).json({ message: 'Not authenticated.' });
     }
+    const userId = req.auth.userId;
+    const subject = await Subject.findOne({ _id: req.params.id, user: userId });
+    if (!subject) return res.status(404).json({ message: 'Subject not found' });
+
+    await subject.deleteOne();
+    return res.json({ message: 'Subject removed' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Error in deleteSubject:', error);
+    return res.status(500).json({ message: error.message });
   }
 };
 
