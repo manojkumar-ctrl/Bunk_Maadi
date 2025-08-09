@@ -20,3 +20,8 @@ html, body {
   background-color: #0f172a; /* Tailwind's bg-gray-900 */
 }
 
+
+.reset-tw, .reset-tw *{
+  all: revert !important;
+}
+

@@ -12,7 +12,7 @@ const NewsletterBox = () => {
 
     if (user) {
       // If logged in, navigate to /workflow
-      navigate('/workflow');
+      navigate('/bunk-tracker');
     } else {
       // If not logged in, open Clerk sign-in
       openSignIn();

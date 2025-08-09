@@ -1,5 +1,6 @@
 // backend/controllers/bunkController.js
 const Bunk = require('../models/Bunk');
+const Subject = require('../models/Subject');
 
 const recordBunk = async (req, res) => {
   try {
@@ -46,6 +47,40 @@ const recordBunk = async (req, res) => {
     });
 
     await bunk.save();
+
+    // Attempt to find and update the corresponding subject for this user
+    try {
+      // Prefer matching by explicit subjectId if provided, else by name
+      let subjectDoc = null;
+      if (subjectId) {
+        subjectDoc = await Subject.findOne({ _id: subjectId, user: userId });
+      }
+      if (!subjectDoc && (subjectName || subject)) {
+        const nameToFind = subjectName || subject;
+        subjectDoc = await Subject.findOne({ name: nameToFind, user: userId });
+      }
+
+      if (subjectDoc) {
+        // On bunk: classes conducted +1; attendance stays same (didn't attend)
+        subjectDoc.totalClasses = Number(subjectDoc.totalClasses || 0) + 1;
+        // attendedClasses unchanged
+        // totalBunks +1 and history append
+        subjectDoc.totalBunks = Number(subjectDoc.totalBunks || 0) + 1;
+        subjectDoc.bunkHistory = subjectDoc.bunkHistory || [];
+        subjectDoc.bunkHistory.push({ date: parsedDate, type: 'bunk' });
+
+        // Recompute derived fields
+        const total = Number(subjectDoc.totalClasses) || 0;
+        const attended = Number(subjectDoc.attendedClasses) || 0;
+        subjectDoc.attendancePercentage = total > 0 ? Number(((attended / total) * 100).toFixed(2)) : 0;
+        const classesBunked = Math.max(0, total - attended);
+        subjectDoc.maxBunkable = Math.max(0, (Number(subjectDoc.credits) * 2) - classesBunked);
+
+        await subjectDoc.save();
+      }
+    } catch (subjectUpdateErr) {
+      console.warn('Could not update subject after bunk:', subjectUpdateErr.message);
+    }
 
     res.status(201).json({ message: 'Bunk recorded', bunk });
   } catch (err) {

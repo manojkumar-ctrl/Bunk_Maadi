@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaClipboardCheck, FaCalculator, FaBrain, FaBell } from 'react-icons/fa';
+import { FaClipboardCheck, FaCalculator, FaBrain, FaBell, FaCalendarDay } from 'react-icons/fa';
 
 const steps = [
   {
@@ -18,9 +18,9 @@ const steps = [
     icon: <FaBrain className="text-purple-500 w-8 h-8" />
   },
   {
-    title: '4. Stay Notified',
-    description: 'Get alerts before you fall into the danger zone and keep track with your dashboard.',
-    icon: <FaBell className="text-green-500 w-8 h-8" />
+    title: '4. Calendar Integration',
+    description: 'Mark absent days directly into your calendar to stay organized and visualize your attendance patterns.',
+    icon: <FaCalendarDay className="text-green-500 w-8 h-8" />
   }
 ];
 

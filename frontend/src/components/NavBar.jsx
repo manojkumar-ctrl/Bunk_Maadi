@@ -13,7 +13,7 @@ function NavBar() {
   const navLinks = [
     { path: '/', label: 'Home' },
     { path: '/bunk-tracker', label: 'Bunk Tracker' },
-    { path: '/logger', label: 'Leaderboard' },
+    { path: '/logger', label: 'Records' },
     { path: '/workflow', label: 'How It Works' },
    
   ];
@@ -22,7 +22,7 @@ function NavBar() {
     <nav className="bg-blue-800 text-white p-4 shadow-lg font-inter relative z-50">
       <div className="container mx-auto flex justify-between items-center">
       
-             <Link to="/"className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
+             <Link to="/"className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-white">
             Can-I-Bunk
           
         </Link>

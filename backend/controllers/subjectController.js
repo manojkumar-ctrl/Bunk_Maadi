@@ -1,5 +1,6 @@
 // backend/controllers/subjectController.js
 const Subject = require('../models/Subject');
+const Bunk = require('../models/Bunk');
 
 // GET /api/subjects
 const getSubjects = async (req, res) => {
@@ -41,8 +42,19 @@ const addSubject = async (req, res) => {
       minAttendance: Number(minAttendance) || 75,
       credits: Number(credits) || 1,
       totalBunks: 0,
+      // initialize derived fields
+      attendancePercentage: 0,
+      maxBunkable: 0,
       bunkHistory: []
     });
+
+    // compute derived fields before saving
+    const total = subject.totalClasses;
+    const attended = subject.attendedClasses;
+    subject.attendancePercentage = total > 0 ? Number(((attended / total) * 100).toFixed(2)) : 0;
+    // policy: max bunkable = credits * 2 - (classes bunked so far)
+    const classesBunked = Math.max(0, total - attended);
+    subject.maxBunkable = Math.max(0, (subject.credits * 2) - classesBunked);
 
     const created = await subject.save();
     return res.status(201).json(created);
@@ -72,6 +84,13 @@ const updateSubject = async (req, res) => {
     subject.bunkHistory = bunkHistory ?? subject.bunkHistory;
     subject.credits = credits ?? subject.credits;
 
+    // Recalculate derived fields
+    const total = Number(subject.totalClasses) || 0;
+    const attended = Number(subject.attendedClasses) || 0;
+    subject.attendancePercentage = total > 0 ? Number(((attended / total) * 100).toFixed(2)) : 0;
+    const classesBunked = Math.max(0, total - attended);
+    subject.maxBunkable = Math.max(0, (Number(subject.credits) * 2) - classesBunked);
+
     const updated = await subject.save();
     return res.json(updated);
   } catch (error) {
@@ -90,8 +109,18 @@ const deleteSubject = async (req, res) => {
     const subject = await Subject.findOne({ _id: req.params.id, user: userId });
     if (!subject) return res.status(404).json({ message: 'Subject not found' });
 
+    const subjectName = subject.name;
+
     await subject.deleteOne();
-    return res.json({ message: 'Subject removed' });
+
+    // Also remove corresponding bunk history entries for this user/subject
+    try {
+      const deletionResult = await Bunk.deleteMany({ userId: userId, subject: subjectName });
+      return res.json({ message: 'Subject removed', removedBunks: deletionResult.deletedCount || 0 });
+    } catch (cleanupErr) {
+      console.warn('Failed to cleanup bunks for deleted subject:', cleanupErr.message);
+      return res.json({ message: 'Subject removed', removedBunks: 0 });
+    }
   } catch (error) {
     console.error('Error in deleteSubject:', error);
     return res.status(500).json({ message: error.message });

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '@clerk/clerk-react';
+import { toast } from 'react-hot-toast';
+import Markdown from 'react-markdown';
 
 // If you prefer env-based base URL, use that; fallback to localhost
 axios.defaults.baseURL = import.meta.env.BACKEND_URL || 'http://localhost:5000/api';
@@ -20,50 +22,13 @@ function BunkTracker() {
   // AI Bunk Prediction State
   const [aiPredictionLoading, setAiPredictionLoading] = useState(false);
   const [aiPredictionResult, setAiPredictionResult] = useState(null);
+  const [aiRecommendation, setAiRecommendation] = useState(null); // 'yes' | 'no' | 'caution'
   const [selectedSubjectForAI, setSelectedSubjectForAI] = useState('');
-  const [bengaluruWeather, setBengaluruWeather] = useState('Fetching weather...');
-  const [hasStrikesOrEmergency, setHasStrikesOrEmergency] = useState('No');
 
   // Clerk auth
   const { userId, getToken, isLoaded } = useAuth();
 
-  // Fetch weather (via backend predict-bunk proxy) every 5 minutes
-  useEffect(() => {
-    const fetchWeather = async () => {
-      try {
-        const token = await getToken();
-        const response = await fetch(`${API_BASE_URL}/predict-bunk`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            subjectName: 'dummy',
-            currentAttendance: 0,
-            minRequiredAttendance: 0,
-            hasStrikesOrEmergency: 'No',
-          }),
-        });
-        const data = await response.json();
-        if (response.ok) {
-          setBengaluruWeather(data.weather || 'Weather data unavailable.');
-        } else {
-          console.error('Error fetching weather:', data.message);
-          setBengaluruWeather('Weather data unavailable.');
-        }
-      } catch (err) {
-        console.error('Failed to fetch weather:', err);
-        setBengaluruWeather('Weather data unavailable.');
-      }
-    };
-
-    if (isLoaded && userId) {
-      fetchWeather();
-      const weatherInterval = setInterval(fetchWeather, 300000); // 5 minutes
-      return () => clearInterval(weatherInterval);
-    }
-  }, [isLoaded, userId, getToken]);
+  // Removed automatic welcome toast on navigation to BunkTracker
 
   // Fetch subjects for logged-in user
   useEffect(() => {
@@ -183,6 +148,7 @@ function BunkTracker() {
 
       // Success path: optionally refresh subjects to show canonical counts
       console.log('Bunk recorded on server:', body);
+      toast.success(`Bunk marked for ${subjectName}`);
       try {
         const updatedRes = await fetch(`${API_BASE_URL}/subjects`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -198,6 +164,7 @@ function BunkTracker() {
       // Keep optimistic Logger entry; report backend failure to user
       console.error('Error recording bunk:', err);
       setError(`Failed to record bunk on server: ${err.message}`);
+      toast.error('Failed to record bunk');
     }
   };
 
@@ -259,9 +226,11 @@ function BunkTracker() {
       setNewMinAttendance('75');
       setNewSubjectCredits('');
       setError(null);
+      toast.success('Subject added');
     } catch (e) {
       console.error('Error adding subject:', e);
       setError(`Failed to add subject: ${e.message}. Please try again.`);
+      toast.error('Failed to add subject');
     }
   };
 
@@ -269,6 +238,7 @@ function BunkTracker() {
   const handleGetBunkPrediction = async () => {
     setAiPredictionLoading(true);
     setAiPredictionResult(null);
+    setAiRecommendation(null);
     setError(null);
 
     const selectedSub = subjects.find((s) => s._id === selectedSubjectForAI);
@@ -280,6 +250,7 @@ function BunkTracker() {
 
     const currentAttendance = calculateAttendancePercentage(selectedSub);
     const minRequiredAttendance = selectedSub.minAttendance;
+    const safeBunksRemaining = calculateClassesSafeToBunk(selectedSub);
 
     try {
       const token = await getToken();
@@ -293,7 +264,7 @@ function BunkTracker() {
           subjectName: selectedSub.name,
           currentAttendance: parseFloat(currentAttendance),
           minRequiredAttendance: minRequiredAttendance,
-          hasStrikesOrEmergency: hasStrikesOrEmergency,
+          maxBunkable: safeBunksRemaining,
         }),
       });
 
@@ -305,8 +276,21 @@ function BunkTracker() {
       }
 
       const data = await response.json();
-      setAiPredictionResult(data.prediction);
-      setBengaluruWeather(data.weather || bengaluruWeather);
+      const predictionText = String(data.prediction || '');
+      setAiPredictionResult(predictionText);
+
+      // classify tone for styling
+      const textLc = predictionText.toLowerCase();
+      let tone = 'caution';
+      if (safeBunksRemaining <= 0) {
+        tone = 'no';
+      }
+      if (/(^|\b)(no|do not|don't)\b.*bunk/.test(textLc) || /\bdo not bunk\b/.test(textLc)) {
+        tone = 'no';
+      } else if (/\byes\b.*bunk/.test(textLc) || /\bcan bunk\b/.test(textLc) || /\bsafe(ly)? to bunk\b/.test(textLc)) {
+        tone = 'yes';
+      }
+      setAiRecommendation(tone);
     } catch (e) {
       console.error('Error getting AI prediction:', e);
       setError(`Error getting AI prediction: ${e.message}. Please check your network or try again.`);
@@ -335,16 +319,33 @@ function BunkTracker() {
 
       setSubjects((prev) => prev.filter((subject) => subject._id !== subjectId));
       setError(null);
+
+      // Notify Logger to refresh/optimistically remove entries for this subject
+      try {
+        const deletedSubject = subjects.find((s) => s._id === subjectId);
+        if (deletedSubject) {
+          window.dispatchEvent(
+            new CustomEvent('bunkRecorded', {
+              detail: { subjectName: deletedSubject.name, bunkDate: Date.now(), deleted: true },
+            })
+          );
+        } else {
+          // generic trigger so Logger re-fetches
+          window.dispatchEvent(new CustomEvent('bunkRecorded'));
+        }
+      } catch (_) {}
+      toast.success('Subject deleted');
     } catch (e) {
       console.error('Error deleting subject:', e);
       setError('Failed to delete subject. Please try again.');
+      toast.error('Failed to delete subject');
     }
   };
 
   // Auth/UI guards
   if (!isLoaded) {
     return (
-      <div className="flex justify-center items-center h-screen bg-gray-100">
+      <div className="flex justify-center items-center h-screen  bg-gradient-to-br from-blue-50 to-blue-100">
         <p className="text-xl text-gray-700">Loading authentication...</p>
       </div>
     );
@@ -352,7 +353,7 @@ function BunkTracker() {
 
   if (!userId) {
     return (
-      <div className="flex justify-center items-center h-screen bg-gray-100">
+      <div className="flex justify-center items-center h-screen bg-gradient-to-br from-blue-50 to-blue-100">
         <p className="text-xl text-gray-700">Please sign in to view this page.</p>
       </div>
     );
@@ -368,14 +369,14 @@ function BunkTracker() {
 
   if (error) {
     return (
-      <div className="flex justify-center items-center h-screen bg-gray-100">
+      <div className="flex justify-center items-center h-screen  bg-gradient-to-br from-blue-50 to-blue-100">
         <p className="text-xl text-red-600">Error: {error}</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-gray-100 min-h-screen flex flex-col font-inter text-gray-800">
+    <div className=" bg-gradient-to-br from-blue-50 to-blue-100 min-h-screen flex flex-col font-inter text-gray-800 ">
       <div className="flex-grow container mx-auto p-4 md:p-8">
         <h1 className="text-4xl font-extrabold text-center mb-8 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-700">
           Bunk Tracker Dashboard
@@ -468,70 +469,29 @@ function BunkTracker() {
         {/* AI Bunk Prediction Section */}
         <div className="bg-white shadow-lg rounded-xl p-6 border border-purple-100">
           <h2 className="text-2xl font-semibold text-gray-700 mb-4">AI Bunk Prediction</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label htmlFor="aiSubjectSelect" className="block text-sm font-medium text-gray-700 mb-1">
-                Select Subject:
-              </label>
-              <select
-                id="aiSubjectSelect"
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md shadow-sm"
-                value={selectedSubjectForAI}
-                onChange={(e) => setSelectedSubjectForAI(e.target.value)}
-              >
-                {subjects.length === 0 ? (
-                  <option value="">No subjects available</option>
-                ) : (
-                  subjects.map((sub) => (
-                    <option key={sub._id} value={sub._id}>
-                      {sub.name}
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="weatherInfo" className="block text-sm font-medium text-gray-700 mb-1">
-                Bengaluru Weather:
-              </label>
-              <p
-                id="weatherInfo"
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base bg-gray-50 rounded-md shadow-sm"
-              >
-                {bengaluruWeather}
-              </p>
-            </div>
+          <div className="mb-4">
+            <label htmlFor="aiSubjectSelect" className="block text-sm font-medium text-gray-700 mb-1">
+              Select Subject:
+            </label>
+            <select
+              id="aiSubjectSelect"
+              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md shadow-sm"
+              value={selectedSubjectForAI}
+              onChange={(e) => setSelectedSubjectForAI(e.target.value)}
+            >
+              {subjects.length === 0 ? (
+                <option value="">No subjects available</option>
+              ) : (
+                subjects.map((sub) => (
+                  <option key={sub._id} value={sub._id}>
+                    {sub.name}
+                  </option>
+                ))
+              )}
+            </select>
           </div>
 
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Are there any city-wide strikes or national emergencies in Bengaluru today?
-            </label>
-            <div className="mt-2 flex items-center space-x-4">
-              <label className="inline-flex items-center">
-                <input
-                  type="radio"
-                  className="form-radio text-blue-600"
-                  name="strikes"
-                  value="Yes"
-                  checked={hasStrikesOrEmergency === 'Yes'}
-                  onChange={(e) => setHasStrikesOrEmergency(e.target.value)}
-                />
-                <span className="ml-2 text-gray-700">Yes</span>
-              </label>
-              <label className="inline-flex items-center">
-                <input
-                  type="radio"
-                  className="form-radio text-blue-600"
-                  name="strikes"
-                  value="No"
-                  checked={hasStrikesOrEmergency === 'No'}
-                  onChange={(e) => setHasStrikesOrEmergency(e.target.value)}
-                />
-                <span className="ml-2 text-gray-700">No</span>
-              </label>
-            </div>
-          </div>
+          
 
           <button
             onClick={handleGetBunkPrediction}
@@ -542,9 +502,24 @@ function BunkTracker() {
           </button>
 
           {aiPredictionResult && (
-            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg shadow-inner">
-              <h3 className="text-lg font-semibold text-blue-800 mb-2">AI's Recommendation:</h3>
-              <p className="text-gray-700 whitespace-pre-wrap">{aiPredictionResult}</p>
+            <div
+              className={
+                `mt-6 p-4 rounded-lg shadow-inner border ` +
+                (aiRecommendation === 'yes'
+                  ? 'bg-green-50 border-green-200'
+                  : aiRecommendation === 'no'
+                  ? 'bg-red-50 border-red-200'
+                  : 'bg-yellow-50 border-yellow-200')
+              }
+            >
+              <h3 className="text-lg font-semibold mb-2">
+                {aiRecommendation === 'yes' && <span className="text-green-800">AI's Recommendation: Yes</span>}
+                {aiRecommendation === 'no' && <span className="text-red-800">AI's Recommendation: No</span>}
+                {aiRecommendation === 'caution' && <span className="text-yellow-800">AI's Recommendation</span>}
+              </h3>
+              <div className="mt-3 text-sm text-slate-700">
+                <Markdown>{aiPredictionResult}</Markdown>
+              </div>
             </div>
           )}
         </div>

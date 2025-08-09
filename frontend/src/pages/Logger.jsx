@@ -27,13 +27,11 @@ const Logger = () => {
 
       const data = Array.isArray(res.data) ? res.data : [];
 
-      // Group bunks by date (robust to different backend field names)
       const bunksByDate = data.reduce((acc, bunk) => {
         const dateVal = bunk.bunkDate || bunk.date || bunk.createdAt || bunk.created_at;
         const dateObj = dateVal ? new Date(dateVal) : new Date();
         const dateKey = dateObj.toLocaleDateString('en-GB');
 
-        // subject name: try multiple shapes (bunk.subjectName, bunk.subject.name, bunk.subject)
         const subjectName =
           bunk.subjectName ||
           (bunk.subject && (bunk.subject.name || bunk.subject.subjectName)) ||
@@ -54,46 +52,32 @@ const Logger = () => {
     }
   }, [userId, isLoaded, getToken]);
 
-  // initial fetch
   useEffect(() => {
     fetchBunkHistory();
   }, [fetchBunkHistory]);
 
-  // listen for external events (dispatched by BunkTracker) to refresh and optimistic update
   useEffect(() => {
     const handler = (e) => {
       const detail = e?.detail;
+      fetchBunkHistory();
 
-      if (detail) {
+      if (!detail) return;
+
+      if (!detail.deleted) {
         try {
           const dateKey = new Date(detail.bunkDate || Date.now()).toLocaleDateString('en-GB');
-
           setGroupedBunks((prev) => {
             const copy = { ...prev };
             const existing = Array.isArray(copy[dateKey]) ? copy[dateKey] : [];
-
-            // Optionally dedupe: only add if subject not already present for that date
             const subjectToAdd = detail.subjectName || 'Unknown Subject';
-            const alreadyPresent = existing.includes(subjectToAdd);
-
-            if (!alreadyPresent) {
+            if (!existing.includes(subjectToAdd)) {
               copy[dateKey] = [...existing, subjectToAdd];
-            } else {
-              // If already present, keep as-is
-              copy[dateKey] = existing;
             }
-
             return copy;
           });
         } catch (err) {
-          console.warn('Failed optimistic update from bunkRecorded event', err);
+          console.warn('Failed optimistic add in Logger', err);
         }
-
-        // Re-sync with backend to get canonical data (recommended)
-        fetchBunkHistory();
-      } else {
-        // If the event had no detail, just refresh
-        fetchBunkHistory();
       }
     };
 
@@ -101,7 +85,6 @@ const Logger = () => {
     return () => window.removeEventListener('bunkRecorded', handler);
   }, [fetchBunkHistory]);
 
-  // Sort dates (desc)
   const sortedDates = Object.keys(groupedBunks).sort((a, b) => {
     const [aDay, aMonth, aYear] = a.split('/').map(Number);
     const [bDay, bMonth, bYear] = b.split('/').map(Number);
@@ -109,69 +92,61 @@ const Logger = () => {
   });
 
   const getCalendarLink = (date, subjects) => {
-    const [day, month, year] = date.split('/').map(part => part.padStart(2, '0'));
+    const [day, month, year] = date.split('/').map((part) => part.padStart(2, '0'));
     const formattedDate = `${year}${month}${day}`;
-    const title = 'Bunked Classes';
-    const description = `Subjects bunked: ${subjects.join(', ')}`;
-    return `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${formattedDate}/${formattedDate}&details=${encodeURIComponent(description)}&sf=true&output=xml`;
+    const title = subjects.length === 1 ? `Bunked: ${subjects[0]}` : 'Bunked Classes';
+    const description = subjects.length === 1
+      ? `Subject bunked: ${subjects[0]}`
+      : `Subjects bunked: ${subjects.join(', ')}`;
+    return `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
+      title
+    )}&dates=${formattedDate}/${formattedDate}&details=${encodeURIComponent(
+      description
+    )}&sf=true&output=xml`;
   };
 
-  if (!isLoaded) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-gray-100">
-        <p className="text-xl text-gray-700">Loading authentication...</p>
-      </div>
-    );
-  }
+  const LoaderScreen = ({ message }) => (
+    <div className="flex justify-center items-center h-screen bg-gradient-to-br from-blue-50 to-blue-100">
+      <p className="text-xl text-gray-700 font-medium">{message}</p>
+    </div>
+  );
 
-  if (!userId) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-gray-100">
-        <p className="text-xl text-gray-700">Please sign in to view your bunk history.</p>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-gray-100">
-        <p className="text-xl text-gray-700">Loading bunk history...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-gray-100">
-        <p className="text-xl text-red-600">Error: {error}</p>
-      </div>
-    );
-  }
+  if (!isLoaded) return <LoaderScreen message="Loading authentication..." />;
+  if (!userId) return <LoaderScreen message="Please sign in to view your bunk history." />;
+  if (loading) return <LoaderScreen message="Loading bunk history..." />;
+  if (error) return <LoaderScreen message={`Error: ${error}`} />;
 
   return (
-    <div className="container mx-auto p-4 md:p-8 min-h-screen bg-gray-100">
-      <h1 className="text-4xl font-extrabold text-center mb-8 text-gray-800">Your Bunk History</h1>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-4 md:p-8">
+      <h1 className="text-4xl font-extrabold text-center mb-8 text-gray-800 drop-shadow-sm">
+        Your Bunk History
+      </h1>
       {sortedDates.length === 0 ? (
         <p className="text-center text-gray-500 py-4">No bunks recorded yet.</p>
       ) : (
-        <div className="bg-white shadow-lg rounded-xl p-6">
+        <div className="bg-white shadow-xl rounded-2xl p-6 md:p-8 max-w-4xl mx-auto">
           <ul className="space-y-6">
             {sortedDates.map(date => (
-              <li key={date} className="border-b border-gray-200 pb-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-gray-800 mb-2">Bunks on {date}</h2>
+              <li
+                key={date}
+                className="border-b border-gray-200 pb-4 last:border-none"
+              >
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  <h2 className="text-xl font-semibold text-gray-800">
+                    📅 Bunks on {date}
+                  </h2>
                   <a
                     href={getCalendarLink(date, groupedBunks[date])}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-500 hover:text-blue-700 transition duration-200 text-sm font-semibold"
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-md hover:bg-blue-700 transition duration-200 text-center"
                   >
                     Add to Calendar
                   </a>
                 </div>
-                <ul className="list-disc list-inside space-y-1 ml-4">
+                <ul className="list-disc list-inside space-y-1 ml-4 mt-2">
                   {groupedBunks[date].map((subjectName, index) => (
-                    <li key={index} className="text-lg text-gray-700">
+                    <li key={index} className="text-gray-700 text-lg">
                       {subjectName}
                     </li>
                   ))}

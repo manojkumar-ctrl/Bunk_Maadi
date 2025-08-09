@@ -42,6 +42,20 @@ const subjectSchema = mongoose.Schema(
       required: true,
       default: 1,
     },
+    // Derived fields stored for quick reads
+    attendancePercentage: {
+      type: Number,
+      required: true,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
+    maxBunkable: {
+      type: Number,
+      required: true,
+      default: 0,
+      min: 0,
+    },
     bunkHistory: [bunkHistorySchema],
   },
   {
