@@ -5,8 +5,8 @@ import { toast } from 'react-hot-toast';
 import Markdown from 'react-markdown';
 
 // If you prefer env-based base URL, use that; fallback to localhost
-axios.defaults.baseURL = import.meta.env.BACKEND_URL;
-const API_BASE_URL = import.meta.env.BACKEND_URL;
+axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
 
 function BunkTracker() {
   const [subjects, setSubjects] = useState([]);
