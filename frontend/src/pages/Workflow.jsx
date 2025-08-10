@@ -9,7 +9,7 @@ const steps = [
   },
   {
     title: '2. Calculate Bunkable Classes',
-    description: 'BunkMaadi checks your current attendance and tells you how many more classes you can miss safely.',
+    description: 'Can-I-Bunk checks your current attendance and tells you how many more classes you can miss safely.',
     icon: <FaCalculator className="text-yellow-500 w-8 h-8" />
   },
   {
@@ -28,7 +28,7 @@ const Workflow = () => {
   return (
     <div className="py-16 px-4 bg-gray-900 text-white font-inter mt-20 mb-30 ">
       <div className="max-w-6xl mx-auto text-center">
-        <h2 className="text-4xl font-extrabold mb-4 text-blue-400">How BunkMaadi Works</h2>
+        <h2 className="text-4xl font-extrabold mb-4 text-blue-400">How Can-I-Bunk Works</h2>
         <p className="text-gray-300 mb-12 text-lg">
           Understand the step-by-step process of how your attendance is analyzed to give you smart bunking advice.
         </p>
