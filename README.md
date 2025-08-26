@@ -35,13 +35,13 @@ Weather API → Contextual bunk decisions
 git clone https://github.com/manojkumar-ctrl/can-i-bunk.git
 cd can-i-bunk
 
-#2️⃣ Backend Setup (Node + Express)
+2️⃣ Backend Setup (Node + Express)
 cd backend
 npm install
 npm run dev
 
 
-# 3️⃣ Frontend Setup (React + Tailwind + Clerk)
+ 3️⃣ Frontend Setup (React + Tailwind + Clerk)
 cd frontend
 npm install
 npm run dev
@@ -60,7 +60,5 @@ Get AI + Weather powered suggestions on whether to GO or BUNK today.
 Frontend: Hosted on Vercel → https://can-i-bunk.vercel.app/
 Backend: Hosted on Render
 
-
-MIT License © 2025 Manojkumar
 
 🔥 Stay smart. Bunk safe. Never risk attendance shortage again with Can-I-Bunk!
