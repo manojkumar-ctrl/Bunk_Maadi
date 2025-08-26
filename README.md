@@ -1,10 +1,10 @@
 # 🎓 Can-I-Bunk
 
-#👉 Live Project: https://can-i-bunk.vercel.app/
+# 👉 Live Project: https://can-i-bunk.vercel.app/
 
 Can-I-Bunk is a smart attendance tracker and recommendation system that helps students decide whether they can BUNK or need to GO to class. It calculates safe bunkable classes, predicts future risks, and integrates with Google Calendar for claiming attendance.
 
-#✨ Features
+# ✨ Features
 ✅ Bunk Calculator → Calculates the number of safe bunkable classes per subject
 ✅ Smart Prediction → Suggests if you can bunk based on attendance rules
 ✅ Bunk Records → Tracks and stores your bunked classes
