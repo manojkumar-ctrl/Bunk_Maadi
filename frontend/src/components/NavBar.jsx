@@ -23,7 +23,7 @@ function NavBar() {
       <div className="container mx-auto flex justify-between items-center">
       
              <Link to="/"className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-white">
-            Can-I-Bunk
+           BunkMaadi
           
         </Link>
 
